@@ -4,9 +4,9 @@ A powerful tool to unleash controlled chaos on your images. Distort, warp, or in
 
 ### Usage:
 
-\```bash
+```bash
 PixelPandemonium.exe -s <path-to-image> [options]
-\```
+```
 
 ### Options:
 

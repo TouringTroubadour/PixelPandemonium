@@ -20,41 +20,6 @@ function distortImage(pixelData, distortionPercentage) {
   }
 }
 
-function applyShift(
-  pixelData,
-  index,
-  shiftDirection,
-  shiftMagnitude,
-  isRowWarp,
-  imageWidth,
-  imageHeight,
-  shiftScope
-) {
-  if (isRowWarp) {
-    const altitude = randomInt(0, imageHeight); // for columns
-    shiftRow(pixelData, index, imageWidth, shiftMagnitude, shiftScope);
-    shiftColumn(
-      pixelData,
-      index,
-      imageWidth,
-      shiftMagnitude,
-      shiftScope,
-      altitude
-    );
-  } else {
-    const altitude = randomInt(0, imageWidth); // for rows
-    shiftColumn(
-      pixelData,
-      index,
-      imageWidth,
-      imageHeight,
-      shiftMagnitude,
-      shiftScope,
-      altitude
-    );
-  }
-}
-
 function shiftRow(pixelData, rowIndex, imageWidth, shiftAmount) {
   const startIdx = rowIndex * imageWidth * 4;
   const row = pixelData.slice(startIdx, startIdx + imageWidth * 4);
