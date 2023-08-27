@@ -1,20 +1,20 @@
-## PixelPandemonium
+![Pixel Pandemonium Banner](./res/PixelPandemonium.jpg)
+
+# PixelPandemonium
 
 A powerful tool to unleash controlled chaos on your images. Distort, warp, or introduce randomness to create unique outputs with each run.
 
-### Usage:
+### Usage
 
 ```bash
 PixelPandemonium.exe -s <path-to-image> [options]
 ```
 
-### Options:
+### Options
 
 - **-s, --source [path]**: _Required._ Path to the source image you want to process.
 
 - **-d, --distortion [percentage]**: Percentage of distortion you want to introduce to the image.
-
-- **-c, --chaos**: Apply a random distortion and warping to the image.
 
 - **-w, --warp [number-of-groups max-group-size uniform]**:
 
@@ -22,34 +22,62 @@ PixelPandemonium.exe -s <path-to-image> [options]
   - _max-group-size_ defines the maximum size for a group. If the `uniform` flag is set to true, all warp groups will be of this size. Otherwise, the size will be random.
   - _uniform_ is a boolean (`true` or `false`) indicating whether all warp groups should be of uniform size.
 
+- **-c, --chaos [percentage]**: Apply a random distortion and warping to the image.
+
+- **-p, --pastelize [percentage]**: Apply a pastel effect to the image.
+
+- **--vh, --vaporwavehues [Intensity]**: Apply a vaporwave-esque hue to the image.
+
+- **--sc, --scanlines [spacing thickness]**:
+   -_spacing_ specifies the spacing between scanlines.
+   -_thickness_ specifies the thickness of scanlines.
+
+- **--v, --vhs [strength frequency direction alpha]**:
+   -_strength_ specifies the wave amplitude.
+   -_frequency_ specifies the wave frequency.
+   -_direction_ specifies whether the waves will be horizontal, vertical, or both.
+   -_alpha_ was supposed to determine the opacity of the waves, but instead does something chaotic.
+
+- **--ca, --chroma [red-offset green-offset blue-offset]**:
+   -_red-offset_ specifies the offset of red pixels.
+   -_green-offset_ specifies the offset of green pixels.
+   -_blue-offset_ specifies the offset of blue pixels.
+
+- **--vc, --vaporchaos [percentage]**: Apply a random assortment of Chaos and Vapor effects.
+
 - **-r, --repeat [number]**: Apply all the specified distortions recursively for the provided number of times.
 
-### Examples:
+### Examples
 
 1. Distort an image by 30%:
-   \```bash
+
+   ```bash
    PixelPandemonium.exe -s image.jpg -d 30
-   \```
+   ```
 
 2. Introduce chaos (a mixture of warp and distortion):
-   \```bash
+
+   ```bash
    PixelPandemonium.exe -s image.jpg -c
-   \```
+   ```
 
 3. Warp an image with 5 groups of a max size of 20 pixels each, with random group sizes:
-   \```bash
+
+   ```bash
    PixelPandemonium.exe -s image.jpg -w 5 20 false
-   \```
+   ```
 
 4. Warp an image with 5 uniform groups of size 20 pixels:
-   \```bash
+
+   ```bash
    PixelPandemonium.exe -s image.jpg -w 5 20 true
-   \```
+   ```
 
 5. Apply a distortion of 20% recursively 3 times:
-   \```bash
+
+   ```bash
    PixelPandemonium.exe -s image.jpg -d 20 -r 3
-   \```
+   ```
 
 ---
 
