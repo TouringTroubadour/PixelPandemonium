@@ -77,7 +77,6 @@ function warpImage(
   maxGroupSize,
   uniform
 ) {
-  // Determine sizes of each group
   const groupSizes = [];
   for (let i = 0; i < numGroups; i++) {
     groupSizes.push(uniform ? maxGroupSize : randomInt(1, maxGroupSize + 1));
@@ -87,7 +86,6 @@ function warpImage(
     const isColumnShift = Math.random() > 0.5;
     const totalElements = isColumnShift ? imageHeight : imageWidth;
 
-    // Choose a random starting index for this group
     const startIndex = randomInt(0, totalElements - groupSize);
     const shiftAmount = randomInt(1, groupSize + 1); // Decide shift magnitude
 

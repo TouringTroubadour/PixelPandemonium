@@ -1,5 +1,7 @@
 ![Pixel Pandemonium Banner](./res/PixelPandemonium.jpg)
 
+---
+
 # PixelPandemonium
 
 A powerful tool to unleash controlled chaos on your images. Distort, warp, or introduce randomness to create unique outputs with each run.
@@ -33,12 +35,14 @@ PixelPandemonium.exe -s <path-to-image> [options]
    -_thickness_ specifies the thickness of scanlines.
 
 - **--v, --vhs [strength frequency direction alpha]**:
+
    -_strength_ specifies the wave amplitude.
    -_frequency_ specifies the wave frequency.
    -_direction_ specifies whether the waves will be horizontal, vertical, or both.
    -_alpha_ was supposed to determine the opacity of the waves, but instead does something chaotic.
 
 - **--ca, --chroma [red-offset green-offset blue-offset]**:
+
    -_red-offset_ specifies the offset of red pixels.
    -_green-offset_ specifies the offset of green pixels.
    -_blue-offset_ specifies the offset of blue pixels.
@@ -55,10 +59,10 @@ PixelPandemonium.exe -s <path-to-image> [options]
    PixelPandemonium.exe -s image.jpg -d 30
    ```
 
-2. Introduce chaos (a mixture of warp and distortion):
+2. Introduce 50% chaos (a mixture of warp and distortion):
 
    ```bash
-   PixelPandemonium.exe -s image.jpg -c
+   PixelPandemonium.exe -s image.jpg -c 50
    ```
 
 3. Warp an image with 5 groups of a max size of 20 pixels each, with random group sizes:
