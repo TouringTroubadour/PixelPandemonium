@@ -14,7 +14,7 @@ PixelPandemonium.exe -s <path-to-image> [options]
 
 ### Options
 
-- **-s, --source [path]**: _Required._ Path to the source image you want to process.
+- **-s, --source [path]**: _Required._ Path to the source image or source directory you want to process.
 
 - **-d, --distortion [percentage]**: Percentage of distortion you want to introduce to the image.
 

@@ -1,4 +1,5 @@
-const fs = require("fs");
+const fs = require("fs").promises;
+const path = require("path");
 const Jimp = require("jimp");
 const yargs = require("yargs/yargs");
 const { hideBin } = require("yargs/helpers");
@@ -15,7 +16,7 @@ function shouldApplyMethod(intensity) {
   return Math.random() * 100 <= intensity;
 }
 
-function distortImage(pixelData, distortionPercentage) {
+function distortImage(pixelData, distortionPercentage, editAlpha) {
   const numAffectedPixels = Math.floor(
     (pixelData.length / 4) * (distortionPercentage / 100)
   );
@@ -24,7 +25,9 @@ function distortImage(pixelData, distortionPercentage) {
     pixelData[idx] = randomInt(0, 255);
     pixelData[idx + 1] = randomInt(0, 255);
     pixelData[idx + 2] = randomInt(0, 255);
-    pixelData[idx + 3] = randomInt(0, 255);
+    if (editAlpha) {
+      pixelData[idx + 3] = randomInt(0, 255);
+    }
   }
 }
 
@@ -206,18 +209,23 @@ function randomizeVaporwaveHues(pixelData, intensity) {
     const g = pixelData[i + 1];
     const b = pixelData[i + 2];
 
-    const [h, s, l] = rgbToHsl(r, g, b);
+    const [s, l] = rgbToHsl(r, g, b);
 
-    const vaporHues = [290, 320, 200, 160, 210, 240]; // Vaporwave-esque hues
+    const vaporHues = [290, 320, 200, 160, 210, 240];
 
     // Randomly select a vaporwave hue
-    const randomVaporHue = vaporHues[Math.floor(Math.random() * vaporHues.length)];
+    const randomVaporHue =
+      vaporHues[Math.floor(Math.random() * vaporHues.length)];
 
     // Adjust saturation and lightness based on intensity
     const adjustedS = s * (1 - intensity) + intensity;
     const adjustedL = l * (1 - intensity) + intensity;
 
-    const [newR, newG, newB] = hslToRgb(randomVaporHue / 360, adjustedS, adjustedL);
+    const [newR, newG, newB] = hslToRgb(
+      randomVaporHue / 360,
+      adjustedS,
+      adjustedL
+    );
 
     pixelData[i] = newR;
     pixelData[i + 1] = newG;
@@ -242,10 +250,8 @@ function applyScanlines(
         for (let x = 0; x < imageWidth; x++) {
           const idx = (currentY * imageWidth + x) * 4;
 
-          // Calculate the adjusted opacity based on the provided opacity value
           const adjustedOpacity = opacity / 100;
 
-          // Reduce the brightness of R, G, and B channels while keeping their color
           pixelData[idx] *= adjustedOpacity; // R channel
           pixelData[idx + 1] *= adjustedOpacity; // G channel
           pixelData[idx + 2] *= adjustedOpacity; // B channel
@@ -266,7 +272,7 @@ function applyWave(
   waveAmplitude,
   waveFrequency,
   direction,
-  alpha = 1 // default to 1 if not provided
+  alpha
 ) {
   if (direction === "vertical") {
     for (let x = 0; x < imageWidth; x++) {
@@ -404,6 +410,207 @@ function applyChromaAberration(
   }
 }
 
+function applyDistortion(params, pixelData) {
+  if (params) {
+    const [distortionPercentage, editAlpha] = params;
+    console.log(
+      `Distortion Percentage: ${Number(
+        distortionPercentage
+      )}, Edit Alpha? ${Boolean(editAlpha)}`
+    );
+    distortImage(pixelData, Number(distortionPercentage), Boolean(editAlpha));
+  }
+}
+
+function applyWarp(params, image, pixelData) {
+  if (params && params.length >= 3) {
+    const numGroups = params[0];
+    const maxSize = params[1];
+    const uniform = params[2];
+    console.log(
+      `Warp Groups: ${numGroups}, MaxSize: ${maxSize}, Uniform: ${uniform}`
+    );
+    warpImage(
+      pixelData,
+      image.bitmap.width,
+      image.bitmap.height,
+      numGroups,
+      maxSize,
+      uniform
+    );
+  }
+}
+
+function applyChaos(params, image, pixelData) {
+  if (params) {
+    const intensity = params;
+    console.log(`Chaos Intensity: ${intensity}`);
+
+    if (shouldApplyMethod(intensity)) {
+      const distortionPercentage = randomInt(1, 100);
+      console.log(`\tA sprinkle of distortion! (${distortionPercentage}%)`);
+      distortImage(pixelData, distortionPercentage);
+    }
+
+    if (shouldApplyMethod(intensity)) {
+      const numGroups = randomInt(1, 10);
+      const maxSize = randomInt(
+        1,
+        Math.min(image.bitmap.width, image.bitmap.height)
+      );
+      const uniform = Math.random() > 0.5;
+      console.log(`\tA dash of warp! (${numGroups}, ${maxSize}, ${uniform}!)`);
+      warpImage(
+        pixelData,
+        image.bitmap.width,
+        image.bitmap.height,
+        numGroups,
+        maxSize,
+        uniform
+      );
+    }
+  }
+}
+
+function applyPastel(params, pixelData) {
+  if (params) {
+    const intensity = params;
+    console.log(`Pastel Intensity: ${intensity}`);
+    pastelizeImage(pixelData, intensity);
+  }
+}
+
+function applyVaporwaveHues(params, pixelData) {
+  if (params) {
+    const intensity = params;
+    console.log(`Vaporwave Hues Intensity: ${intensity}`);
+    randomizeVaporwaveHues(pixelData, intensity);
+  }
+}
+
+function applyScans(params, image, pixelData) {
+  if (params) {
+    const [spacing, thickness, opacity] = params;
+    console.log(
+      `Scanlines Spacing: ${spacing}, Thickness: ${thickness}, Opacity: ${opacity}`
+    );
+    applyScanlines(
+      pixelData,
+      image.bitmap.width,
+      image.bitmap.height,
+      spacing,
+      thickness,
+      opacity
+    );
+  }
+}
+
+function applyVHS(params, image, pixelData) {
+  if (params) {
+    const [strength, frequency, direction, alpha] = params;
+    console.log(
+      `VHS Tracking Error Strength: ${strength}, Frequency: ${frequency}, Direction: ${direction}, Alpha: ${alpha}`
+    );
+    applyVHSTrackingError(
+      pixelData,
+      image.bitmap.width,
+      image.bitmap.height,
+      strength,
+      frequency,
+      direction,
+      alpha
+    );
+  }
+}
+
+function applyChroma(params, image, pixelData) {
+  if (params) {
+    const [redOffset, greenOffset, blueOffset] = params;
+    console.log(
+      `Chroma Aberration Red-Offset: ${redOffset}, Green-Offset: ${greenOffset}, Blue-Offset: ${blueOffset}`
+    );
+    applyChromaAberration(
+      pixelData,
+      image.bitmap.width,
+      image.bitmap.height,
+      redOffset,
+      greenOffset,
+      blueOffset
+    );
+  }
+}
+
+function applyVapor(params, image, pixelData) {
+  if (params) {
+    const intensity = params;
+    console.log(`VaporChaos Intensity: ${intensity}`);
+
+    if (shouldApplyMethod(intensity)) {
+      const pastelIntensity = randomInt(100, 100000);
+      console.log(`\tA few cans of pastel! ${pastelIntensity}%`);
+      pastelizeImage(pixelData, pastelIntensity);
+    }
+
+    if (shouldApplyMethod(intensity)) {
+      const distortionPercentage = randomInt(1, 10);
+      console.log(`\tA sprinkle of distortion! (${distortionPercentage}%)`);
+      distortImage(pixelData, distortionPercentage);
+    }
+
+    if (shouldApplyMethod(intensity)) {
+      const numGroups = randomInt(1, 10);
+      const maxSize = randomInt(
+        1,
+        Math.min(image.bitmap.width, image.bitmap.height)
+      );
+      const uniform = Math.random() > 0.5;
+      console.log(`\tA dash of warp! (${numGroups}, ${maxSize}, ${uniform}!)`);
+      warpImage(
+        pixelData,
+        image.bitmap.width,
+        image.bitmap.height,
+        numGroups,
+        maxSize,
+        uniform
+      );
+    }
+
+    if (shouldApplyMethod(intensity)) {
+      const spacing = randomInt(1, 5);
+      const thickness = randomInt(1, 10);
+      const opacity = randomInt(50, 100);
+      console.log(
+        `\tA few scanlines here or there! (${spacing}, ${thickness}, ${opacity})`
+      );
+      applyScanlines(
+        pixelData,
+        image.bitmap.width,
+        image.bitmap.height,
+        spacing,
+        thickness,
+        opacity
+      );
+    }
+
+    if (shouldApplyMethod(intensity)) {
+      const redOffset = randomDouble(0, 10.0);
+      const greenOffset = randomDouble(0, 10.0);
+      const blueOffset = randomDouble(0, 10.0);
+      console.log(
+        `\tSome chroma aberration never hurts anyone! (${redOffset}, ${greenOffset}, ${blueOffset})`
+      );
+      applyChromaAberration(
+        pixelData,
+        image.bitmap.width,
+        image.bitmap.height,
+        redOffset,
+        greenOffset,
+        blueOffset
+      );
+    }
+  }
+}
+
 const argv = yargs(hideBin(process.argv))
   .option("s", {
     alias: "source",
@@ -419,8 +626,9 @@ const argv = yargs(hideBin(process.argv))
   })
   .option("d", {
     alias: "distortion",
-    describe: "Percentage of the image to distort",
-    type: "number",
+    describe:
+      "Percentage of the image to distort [distortion-percentage, editAlpha]",
+    type: "array",
   })
   .option("w", {
     alias: "warp",
@@ -445,8 +653,7 @@ const argv = yargs(hideBin(process.argv))
   })
   .option("sc", {
     alias: "scanlines",
-    describe:
-      "Arguments for scanlines: [Spacing, Thickness, Intensity]",
+    describe: "Arguments for scanlines: [Spacing, Thickness, Intensity]",
     type: "array",
   })
   .option("v", {
@@ -466,173 +673,77 @@ const argv = yargs(hideBin(process.argv))
     describe: "A mix of vapor and chaos, pure pandemonium! [Intensity]",
     type: "number",
   })
-  .help().argv;
+  .option("overwrite", {
+    describe: "Overwrite the file if it already exists",
+    type: "boolean",
+    default: false,
+  })
+  .help("h")
+  .alias("h", "help").argv;
 
 (async function () {
-  const image = await Jimp.read(argv.s);
-  let pixelData = image.bitmap.data;
+  const sourcePath = argv.s;
+  const outputPath = "PixelPandemoniumOutput";
+
+  try {
+    const sourceIsDirectory = await isDirectory(sourcePath);
+
+    if (!sourceIsDirectory) {
+      console.log(`Causing Pixel Pandemonium on ${sourcePath}!`);
+      await processImage(sourcePath, outputPath);
+    } else {
+      try {
+        await fs.mkdir(outputPath);
+      } catch (mkdirError) {
+        if (mkdirError.code !== "EEXIST") {
+          throw mkdirError;
+        }
+      }
+
+      const files = await fs.readdir(sourcePath);
+      for (const file of files) {
+        console.log(`Causing Pixel Pandemonium on ${file}!`);
+        const inputFilePath = path.join(sourcePath, file);
+        await processImage(inputFilePath, outputPath);
+      }
+    }
+  } catch (error) {
+    console.error("An error occurred:", error);
+  }
+})();
+
+async function isDirectory(filePath) {
+  try {
+    const stats = await fs.stat(filePath);
+    return stats.isDirectory();
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      return false;
+    }
+    throw error;
+  }
+}
+
+async function processImage(inputFilePath, outputPath) {
+  const image = await Jimp.read(inputFilePath);
+  const pixelData = image.bitmap.data;
 
   for (let i = 0; i < argv.r; i++) {
-    if (argv.d) {
-      console.log(`Distortion Strength: ${argv.d}`)
-      distortImage(pixelData, argv.d);
-    }
-
-    if (argv.w && argv.w.length >= 3) {
-      const numGroups = argv.w[0];
-      const maxSize = argv.w[1];
-      const uniform = argv.w[2];
-      console.log(`Warp Groups: ${numGroups}, MaxSize: ${maxSize}, Uniform: ${uniform}`)
-      warpImage(
-        pixelData,
-        image.bitmap.width,
-        image.bitmap.height,
-        numGroups,
-        maxSize,
-        uniform
-      );
-    }
-
-    if (argv.c) {
-      const intensity = argv.c;
-      console.log(`Chaos Intensity: ${intensity}`);
-
-      if (shouldApplyMethod(intensity)) {
-        const distortionPercentage = randomInt(1, 100);
-        distortImage(pixelData, distortionPercentage);
-      }
-
-      if (shouldApplyMethod(intensity)) {
-        const numGroups = randomInt(1, 10);
-        const maxSize = randomInt(
-          1,
-          Math.min(image.bitmap.width, image.bitmap.height)
-        );
-        const uniform = Math.random() > 0.5;
-        warpImage(
-          pixelData,
-          image.bitmap.width,
-          image.bitmap.height,
-          numGroups,
-          maxSize,
-          uniform
-        );
-      }
-    }
-
-    if (argv.p) {
-      const intensity = argv.p;
-      console.log(`Pastel Intensity: ${intensity}`);
-      pastelizeImage(pixelData, intensity);
-    }
-
-    if (argv.vh) {
-      const intensity = argv.vh;
-      console.log(`Vaporwave Hues Intensity: ${intensity}`)
-      randomizeVaporwaveHues(pixelData, intensity)
-    }
-
-    if (argv.sc) {
-      const [spacing, thickness, opacity] = argv.sc;
-      console.log(`Scanlines Spacing: ${spacing}, Thickness: ${thickness}, Opacity: ${opacity}`)
-      applyScanlines(
-        pixelData,
-        image.bitmap.width,
-        image.bitmap.height,
-        spacing,
-        thickness,
-        opacity,
-      );
-    }
-
-    if (argv.v) {
-      const [strength, frequency, direction, alpha] = argv.v;
-      console.log(`VHS Tracking Error Strength: ${strength}, Frequency: ${frequency}, Direction: ${direction}, Alpha: ${alpha}`)
-      applyVHSTrackingError(
-        pixelData,
-        image.bitmap.width,
-        image.bitmap.height,
-        strength, 
-        frequency, 
-        direction, 
-        alpha
-      );
-    }
-
-    if (argv.ca) {
-      const [redOffset, greenOffset, blueOffset] = argv.ca;
-      console.log(`Chroma Aberration Red-Offset: ${redOffset}, Green-Offset: ${greenOffset}, Blue-Offset: ${blueOffset}`)
-      applyChromaAberration(
-        pixelData,
-        image.bitmap.width,
-        image.bitmap.height,
-        redOffset,
-        greenOffset,
-        blueOffset
-      );
-    }
-
-    if (argv.vc) {
-      const intensity = argv.vc;
-      console.log(`VaporChaos Intensity: ${intensity}`)
-
-      if (shouldApplyMethod(intensity)) {
-        const pastelIntensity = randomInt(100, 100000);
-        pastelizeImage(pixelData, pastelIntensity);
-      }
-
-      if (shouldApplyMethod(intensity)) {
-        const distortionPercentage = randomInt(1, 10);
-        distortImage(pixelData, distortionPercentage);
-      }
-
-      if (shouldApplyMethod(intensity)) {
-        const numGroups = randomInt(1, 10);
-        const maxSize = randomInt(
-          1,
-          Math.min(image.bitmap.width, image.bitmap.height)
-        );
-        const uniform = Math.random() > 0.5;
-        warpImage(
-          pixelData,
-          image.bitmap.width,
-          image.bitmap.height,
-          numGroups,
-          maxSize,
-          uniform
-        );
-      }
-
-      if (shouldApplyMethod(intensity)) {
-        const scanlineSize = randomInt(1, 100);
-        const scanlineIntensity = randomInt(1, 100);
-        applyScanlines(
-          pixelData,
-          image.bitmap.width,
-          image.bitmap.height,
-          scanlineSize,
-          scanlineIntensity
-        );
-      }
-
-      if (shouldApplyMethod(intensity)) {
-        const redOffset = randomDouble(0, 10.0);
-        const greenOffset = randomDouble(0, 10.0);
-        const blueOffset = randomDouble(0, 10.0);
-        applyChromaAberration(
-          pixelData,
-          image.bitmap.width,
-          image.bitmap.height,
-          redOffset,
-          greenOffset,
-          blueOffset
-        );
-      }
-    }
+    applyDistortion(argv.d, pixelData);
+    applyWarp(argv.w, image, pixelData);
+    applyChaos(argv.c, image, pixelData);
+    applyPastel(argv.p, pixelData);
+    applyVaporwaveHues(argv.vh, pixelData);
+    applyScans(argv.sl, image, pixelData);
+    applyVHS(argv.v, image, pixelData);
+    applyChroma(argv.ca, image, pixelData);
+    applyVapor(argv.vc, image, pixelData);
   }
 
-  image.write("output.png", (err) => {
-    if (err) console.error("Error writing the image:", err);
-    else console.log("Image processing complete. Saved to output.png.");
-  });
-})();
+  const outputFileName =
+    path.basename(inputFilePath);
+  const outputFilePath = path.join(outputPath, outputFileName);
+
+  await image.writeAsync(outputFilePath);
+}
+
